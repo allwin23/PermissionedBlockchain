@@ -1,0 +1,9 @@
+{
+    "index": {
+        "fields": [
+            "timestamp"
+        ]
+    },
+    "name": "indexTimestamp",
+    "type": "json"
+}

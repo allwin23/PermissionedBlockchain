@@ -1,0 +1,21 @@
+# Evidence Network Connection Info
+
+**Orderer:**
+- URL: `localhost:7050`
+- Config Override: `orderer.example.com`
+- TLS Root Cert: `organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem`
+
+**Org1 (Peer0):**
+- MSP ID: `Org1MSP`
+- Endpoint: `localhost:7051`
+- TLS Root Cert: `organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt`
+
+**Org2 (Peer0):**
+- MSP ID: `Org2MSP`
+- Endpoint: `localhost:9051`
+- TLS Root Cert: `organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt`
+
+**Channel Name:** `evidencechannel`
+**Chaincode Name:** `evidence`
+
+*Note: All connection profiles (JSON/YAML) are available in `organizations/peerOrganizations/org*.example.com/connection-org*.{json,yaml}`.*
