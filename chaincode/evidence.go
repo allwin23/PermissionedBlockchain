@@ -17,7 +17,7 @@ type EvidenceRecord struct {
 	AttackType     string            `json:"attackType"`
 	SourceIPHash   string            `json:"sourceIpHash"`
 	MitreTechnique []string          `json:"mitreTechnique"`
-	PayloadHash    string            `json:"payloadHash"`
+	PayloadHash    string            `json:"payloadHash" a`
 	Submitter      string            `json:"submitter"`
 	Status         string            `json:"status"` // new, verified, archived
 	ChainOfCustody []CustodyTransfer `json:"chainOfCustody"`
