@@ -1,4 +1,3 @@
-from fabric_interface.wallet import wallet
 from functools import wraps
 from flask import Blueprint, request, jsonify, session
 import os
@@ -20,11 +19,6 @@ def login_required(f):
         if 'username' not in session:
             return jsonify({'error': 'Unauthorized', 'message': 'Please log in first'}), 401
 
-        # Verify identity exists in wallet
-        identity = wallet.load_identity(session['username'])
-        if not identity:
-            return jsonify({'error': 'Unauthorized', 'message': 'Wallet identity missing'}), 401
-
         return f(*args, **kwargs)
     return decorated_function
 
@@ -39,13 +33,8 @@ def login():
     password = data['password']
 
     if username in USERS and USERS[username] == password:
-        # Load identity
-        identity = wallet.load_identity(username)
-        if identity:
-            session['username'] = username
-            return jsonify({'message': 'Logged in successfully'}), 200
-        else:
-            return jsonify({'error': 'Internal Error', 'message': 'Identity not found in wallet directory'}), 500
+        session['username'] = username
+        return jsonify({'message': 'Logged in successfully'}), 200
     else:
         return jsonify({'error': 'Unauthorized', 'message': 'Invalid credentials'}), 401
 

@@ -1,6 +1,5 @@
 from flask import Blueprint, jsonify, request, session, send_file
 from fabric_interface.client import fabric_client
-from fabric_interface.wallet import wallet
 from api.auth import login_required
 from ipfs_interface.client import ipfs_client
 import json
@@ -59,8 +58,7 @@ def submit_evidence():
             str(payload_hash)
         ]
 
-        requestor = wallet.load_identity(
-            session['username'], client=fabric_client.client)
+        requestor = fabric_client.get_default_requestor()
         tx_id = fabric_client.submit_transaction(
             requestor, 'SubmitEvidence', args)
         return jsonify({'status': 'success', 'tx_id': tx_id, 'ipfs_cid': payload_hash}), 201
@@ -72,8 +70,7 @@ def submit_evidence():
 @login_required
 def get_evidence(evidence_id):
     try:
-        requestor = wallet.load_identity(
-            session['username'], client=fabric_client.client)
+        requestor = fabric_client.get_default_requestor()
         response = fabric_client.query_transaction(
             requestor, 'QueryEvidence', [evidence_id])
         return jsonify({'status': 'success', 'data': json.loads(decode_response(response))}), 200
@@ -85,8 +82,7 @@ def get_evidence(evidence_id):
 @login_required
 def get_all_evidence():
     try:
-        requestor = wallet.load_identity(
-            session['username'], client=fabric_client.client)
+        requestor = fabric_client.get_default_requestor()
         response = fabric_client.query_transaction(
             requestor, 'QueryAllEvidence', [])
         return jsonify({'status': 'success', 'data': json.loads(decode_response(response))}), 200
@@ -99,8 +95,7 @@ def get_all_evidence():
 def update_status(evidence_id):
     data = request.json
     try:
-        requestor = wallet.load_identity(
-            session['username'], client=fabric_client.client)
+        requestor = fabric_client.get_default_requestor()
         tx_id = fabric_client.submit_transaction(requestor, 'UpdateEvidenceStatus', [
                                                  evidence_id, data['status']])
         return jsonify({'status': 'success', 'tx_id': tx_id}), 200
@@ -113,8 +108,7 @@ def update_status(evidence_id):
 def transfer_custody(evidence_id):
     data = request.json
     try:
-        requestor = wallet.load_identity(
-            session['username'], client=fabric_client.client)
+        requestor = fabric_client.get_default_requestor()
         # Chaincode expects [evidenceID, to, reason]
         reason = data.get('reason', 'Administrative transfer')
         tx_id = fabric_client.submit_transaction(requestor, 'TransferCustody', [
@@ -128,8 +122,7 @@ def transfer_custody(evidence_id):
 @login_required
 def download_payload(evidence_id):
     try:
-        requestor = wallet.load_identity(
-            session['username'], client=fabric_client.client)
+        requestor = fabric_client.get_default_requestor()
         response = fabric_client.query_transaction(
             requestor, 'QueryEvidence', [evidence_id])
         evidence_data = json.loads(decode_response(response))

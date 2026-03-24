@@ -1,0 +1,6 @@
+go 1.20
+
+use (
+	./chaincode
+	./go/src/github.com/alls23/fabric-samples/test-network/chaincode/evidence/go
+)

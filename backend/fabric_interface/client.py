@@ -3,6 +3,7 @@ import json
 import os
 import asyncio
 import threading
+import glob
 from hfc.fabric import Client
 from hfc.fabric.peer import Peer
 from hfc.fabric.orderer import Orderer
@@ -136,6 +137,59 @@ class FabricClient:
 
     def get_user_identity(self, org_name, user_name):
         return self.wrapper.client.get_user(org_name, user_name)
+
+    def get_default_requestor(self):
+        from hfc.fabric.user import create_user
+        from hfc.util.keyvaluestore import FileKeyValueStore
+
+        cert_path = Config.FABRIC_USER_CERT_PATH
+        key_path = Config.FABRIC_USER_KEY_PATH
+
+        # Local test-network fallback
+        if not cert_path or not os.path.exists(cert_path):
+            home = os.path.expanduser('~')
+            cert_path = os.path.join(
+                home, 'repos', 'PermissionedBlockchain', 'go', 'src',
+                'github.com', 'alls23', 'fabric-samples', 'test-network',
+                'organizations', 'peerOrganizations', 'org1.example.com',
+                'users', 'Admin@org1.example.com', 'msp', 'signcerts', 'cert.pem'
+            )
+
+        if not key_path or not os.path.exists(key_path):
+            home = os.path.expanduser('~')
+            keystore_dir = os.path.join(
+                home, 'repos', 'PermissionedBlockchain', 'go', 'src',
+                'github.com', 'alls23', 'fabric-samples', 'test-network',
+                'organizations', 'peerOrganizations', 'org1.example.com',
+                'users', 'Admin@org1.example.com', 'msp', 'keystore'
+            )
+            if os.path.exists(keystore_dir):
+                keys = glob.glob(os.path.join(keystore_dir, '*_sk'))
+                if keys:
+                    key_path = keys[0]
+                else:
+                    # Also check wallet dir
+                    wallet_ks = os.path.join(Config.WALLET_DIR, 'alice', 'msp', 'keystore')
+                    keys = glob.glob(os.path.join(wallet_ks, '*_sk'))
+                    key_path = keys[0] if keys else ''
+
+        if not cert_path or not key_path:
+            raise RuntimeError(
+                'Fabric credentials not found. Set FABRIC_USER_CERT_PATH and '
+                'FABRIC_USER_KEY_PATH environment variables.'
+            )
+
+        state_store = FileKeyValueStore('/tmp/fabric-client-kv-store/')
+        user = create_user(
+            name='admin',
+            org='org1.example.com',
+            state_store=state_store,
+            msp_id='Org1MSP',
+            cert_path=cert_path,
+            key_path=key_path
+        )
+        user.cryptoSuite = self.wrapper.client.crypto_suite
+        return user
 
     def submit_transaction(self, requestor, fcn, args):
         if not isinstance(args, list):
