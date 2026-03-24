@@ -53,6 +53,14 @@ function removeUnwantedImages() {
   ${CONTAINER_CLI} image rm -f $(${CONTAINER_CLI} images -aq --filter reference='dev-peer*') 2>/dev/null || true
 }
 
+function clearLedgerVolumes() {
+  local volume_list
+  volume_list=$(${CONTAINER_CLI} volume ls -q | grep -E '(^|_)(orderer\.example\.com|peer0\.org1\.example\.com|peer0\.org2\.example\.com)$' || true)
+  if [ -n "$volume_list" ]; then
+    ${CONTAINER_CLI} volume rm $volume_list >/dev/null 2>&1 || true
+  fi
+}
+
 # Versions of fabric known not to work with the test network
 NONWORKING_VERSIONS="^1\.0\. ^1\.1\. ^1\.2\. ^1\.3\. ^1\.4\."
 
@@ -458,7 +466,8 @@ function networkDown() {
   # Don't remove the generated artifacts -- note, the ledgers are always removed
   if [ "$MODE" != "restart" ]; then
     # Bring down the network, deleting the volumes
-    ${CONTAINER_CLI} volume rm docker_orderer.example.com docker_peer0.org1.example.com docker_peer0.org2.example.com
+    ${CONTAINER_CLI} volume rm docker_orderer.example.com docker_peer0.org1.example.com docker_peer0.org2.example.com >/dev/null 2>&1 || true
+    clearLedgerVolumes
     #Cleanup the chaincode containers
     clearContainers
     #Cleanup images

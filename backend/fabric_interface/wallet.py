@@ -3,10 +3,11 @@ from config import Config
 from hfc.fabric.user import create_user
 from hfc.util.keyvaluestore import FileKeyValueStore
 
+
 class Wallet:
     def __init__(self, wallet_dir=Config.WALLET_DIR):
         self.wallet_dir = wallet_dir
-        
+
     def _read_file(self, file_path):
         with open(file_path, 'r') as f:
             return f.read()
@@ -17,7 +18,7 @@ class Wallet:
         and returns a fabric-sdk-py User object.
         """
         user_path = os.path.join(self.wallet_dir, username)
-        
+
         if not os.path.exists(user_path):
             return None
 
@@ -53,5 +54,6 @@ class Wallet:
         if client:
             user.cryptoSuite = client.crypto_suite
         return user
+
 
 wallet = Wallet()

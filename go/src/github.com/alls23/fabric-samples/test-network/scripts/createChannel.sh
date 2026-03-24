@@ -26,6 +26,11 @@ if [ ! -d "channel-artifacts" ]; then
 	mkdir channel-artifacts
 fi
 
+isAlreadyExistsMessage() {
+	local logfile=$1
+	grep -Eq "cannot join: channel already exists|ledger \[${CHANNEL_NAME}\] already exists with state \[ACTIVE\]" "$logfile"
+}
+
 createChannelGenesisBlock() {
   setGlobals 1
 	which configtxgen
@@ -54,14 +59,17 @@ createChannel() {
 	while [ $rc -ne 0 -a $COUNTER -lt $MAX_RETRY ] ; do
 		sleep $DELAY
 		set -x
-    . scripts/orderer.sh ${CHANNEL_NAME}> /dev/null 2>&1
+		. scripts/orderer.sh ${CHANNEL_NAME}> /dev/null 2>&1
     if [ $bft_true -eq 1 ]; then
-      . scripts/orderer2.sh ${CHANNEL_NAME}> /dev/null 2>&1
-      . scripts/orderer3.sh ${CHANNEL_NAME}> /dev/null 2>&1
-      . scripts/orderer4.sh ${CHANNEL_NAME}> /dev/null 2>&1
+			. scripts/orderer2.sh ${CHANNEL_NAME}> /dev/null 2>&1
+			. scripts/orderer3.sh ${CHANNEL_NAME}> /dev/null 2>&1
+			. scripts/orderer4.sh ${CHANNEL_NAME}> /dev/null 2>&1
     fi
 		res=$?
 		{ set +x; } 2>/dev/null
+		if isAlreadyExistsMessage log.txt; then
+			res=0
+		fi
 		let rc=$res
 		COUNTER=$(expr $COUNTER + 1)
 	done
@@ -83,6 +91,9 @@ joinChannel() {
     peer channel join -b $BLOCKFILE >&log.txt
     res=$?
     { set +x; } 2>/dev/null
+		if isAlreadyExistsMessage log.txt; then
+			res=0
+		fi
 		let rc=$res
 		COUNTER=$(expr $COUNTER + 1)
 	done

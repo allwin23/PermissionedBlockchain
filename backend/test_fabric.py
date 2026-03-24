@@ -1,10 +1,10 @@
+
+from fabric_interface.wallet import wallet
+from fabric_interface.client import fabric_client
+
 import os
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
-import asyncio
-from fabric_interface.client import fabric_client
-from fabric_interface.wallet import wallet
-import sys
 
 def main():
     print("Testing Query EVI-999...")
@@ -18,6 +18,7 @@ def main():
         print("Query Response:", response)
     except Exception as e:
         print("Query Error:", str(e))
+
 
 if __name__ == "__main__":
     main()

@@ -3,16 +3,17 @@ import json
 import os
 import asyncio
 import threading
-import concurrent.futures
 from hfc.fabric import Client
 from hfc.fabric.peer import Peer
 from hfc.fabric.orderer import Orderer
 from hfc.util.crypto.crypto import ecies
 from config import Config
 
+
 def _start_background_loop(loop):
     asyncio.set_event_loop(loop)
     loop.run_forever()
+
 
 _fabric_client_loop = asyncio.new_event_loop()
 _fabric_client_thread = threading.Thread(
@@ -20,12 +21,13 @@ _fabric_client_thread = threading.Thread(
 )
 _fabric_client_thread.start()
 
+
 class FabricClientWrapper:
     def __init__(self, profile_path=Config.FABRIC_NETWORK_PROFILE):
         if profile_path.endswith('.yaml'):
             with open(profile_path, 'r') as f:
                 self.profile = yaml.safe_load(f)
-                
+
             # fabric-sdk-py has bugs where it expects 'path' instead of 'pem' for tlsCACerts.
             # Convert raw PEM texts into temporary files before converting profile to JSON.
             def _convert_pem_to_path(nodes, prefix):
@@ -36,7 +38,7 @@ class FabricClientWrapper:
                         with open(tmp_cert, 'w') as tf:
                             tf.write(pem_data)
                         info['tlsCACerts'] = {'path': tmp_cert}
-                        
+
             if 'peers' in self.profile:
                 _convert_pem_to_path(self.profile['peers'], 'peer')
             if 'orderers' in self.profile:
@@ -51,7 +53,9 @@ class FabricClientWrapper:
                         tmp_cert = f"/tmp/ca_{name}_tls.pem"
                         with open(tmp_cert, 'w') as tf:
                             tf.write(pem_data)
-                        info['tlsCACerts'] = {'path': tmp_cert, 'pem': pem_data} # keeping pem for CA
+                        # keeping pem for CA
+                        info['tlsCACerts'] = {
+                            'path': tmp_cert, 'pem': pem_data}
 
             temp_json = '/tmp/connection-profile.json'
             with open(temp_json, 'w') as f:
@@ -59,7 +63,7 @@ class FabricClientWrapper:
             self.client = Client(net_profile=temp_json)
         else:
             self.client = Client(net_profile=profile_path)
-            
+
         # Re-create peers & orderers to explicitly pass mTLS client certs since Python SDK ignores it in profile
         client_key_path = None
         client_cert_path = None
@@ -73,11 +77,13 @@ class FabricClientWrapper:
             if keys and certs:
                 client_key_path = keys[0]
                 client_cert_path = certs[0]
-                
+
         if client_key_path and client_cert_path:
             for name, peer in list(self.client._peers.items()):
-                opts = tuple((k, v) for k, v in peer._grpc_options.items()) if getattr(peer, '_grpc_options', None) else None
-                ep = peer._endpoint.replace('grpcs://', '').replace('grpc://', '')
+                opts = tuple((k, v) for k, v in peer._grpc_options.items()) if getattr(
+                    peer, '_grpc_options', None) else None
+                ep = peer._endpoint.replace(
+                    'grpcs://', '').replace('grpc://', '')
                 new_peer = Peer(
                     name=name,
                     endpoint=ep,
@@ -87,10 +93,12 @@ class FabricClientWrapper:
                     opts=opts
                 )
                 self.client._peers[name] = new_peer
-                
+
             for name, orderer in list(self.client._orderers.items()):
-                opts = tuple((k, v) for k, v in orderer._grpc_options.items()) if getattr(orderer, '_grpc_options', None) else None
-                ep = orderer._endpoint.replace('grpcs://', '').replace('grpc://', '')
+                opts = tuple((k, v) for k, v in orderer._grpc_options.items()) if getattr(
+                    orderer, '_grpc_options', None) else None
+                ep = orderer._endpoint.replace(
+                    'grpcs://', '').replace('grpc://', '')
                 new_orderer = Orderer(
                     name=name,
                     endpoint=ep,
@@ -103,18 +111,20 @@ class FabricClientWrapper:
 
         if not getattr(self.client, 'crypto_suite', None) or not self.client.crypto_suite:
             self.client._crypto_suite = ecies()
-            
+
         self.channel_name = Config.CHANNEL_NAME
         if not self.client.get_channel(self.channel_name):
             self.client.new_channel(self.channel_name)
-            
+
         self.chaincode_name = Config.CHAINCODE_NAME
-        self.default_peers = ['peer0.org1.example.com'] 
+        self.default_peers = ['peer0.org1.example.com']
+
 
 class FabricClient:
     def __init__(self):
         # Initialize the wrapper ON the background loop
-        future = asyncio.run_coroutine_threadsafe(self._init_wrapper(), _fabric_client_loop)
+        future = asyncio.run_coroutine_threadsafe(
+            self._init_wrapper(), _fabric_client_loop)
         self.wrapper = future.result()
 
     async def _init_wrapper(self):
@@ -130,7 +140,7 @@ class FabricClient:
     def submit_transaction(self, requestor, fcn, args):
         if not isinstance(args, list):
             args = [args]
-        
+
         coro = self.wrapper.client.chaincode_invoke(
             requestor=requestor,
             channel_name=self.wrapper.channel_name,
@@ -142,11 +152,11 @@ class FabricClient:
         )
         future = asyncio.run_coroutine_threadsafe(coro, _fabric_client_loop)
         return future.result()
-    
+
     def query_transaction(self, requestor, fcn, args):
         if not isinstance(args, list):
             args = [args]
-            
+
         kwargs = {
             "requestor": requestor,
             "channel_name": self.wrapper.channel_name,
@@ -158,5 +168,6 @@ class FabricClient:
         coro = self.wrapper.client.chaincode_query(**kwargs)
         future = asyncio.run_coroutine_threadsafe(coro, _fabric_client_loop)
         return future.result()
+
 
 fabric_client = FabricClient()

@@ -16,6 +16,7 @@ services:
     volumes:
       - ./docker/peercfg:/etc/hyperledger/peercfg
       - ${DOCKER_SOCK}:/host/var/run/docker.sock
+      - ${DOCKER_SOCK}:/run/docker.sock
 
   peer0.org2.example.com:
     container_name: peer0.org2.example.com
@@ -29,3 +30,4 @@ services:
     volumes:
       - ./docker/peercfg:/etc/hyperledger/peercfg
       - ${DOCKER_SOCK}:/host/var/run/docker.sock
+      - ${DOCKER_SOCK}:/run/docker.sock
